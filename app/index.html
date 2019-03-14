@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Isometric Tile Test</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="/lib/jquery-3.3.1.min.js"></script>
+    <script src="/lib/mainloop.min.js"></script>
+    <script src="/js/parameters.js"></script>
+    <script src="/js/gametick.js"></script>
+    <script src="/js/isometric.js"></script>
+    <script src="/js/map.js"></script>
+    <script src="/js/tiles.js"></script>
+    <script src="/js/resources.js"></script>
+    <script>$(function() {
+
+      for (var xi = 0; xi < Parameters.worldSize; xi++) {
+        IsometricMap.map.push([]);
+        IsometricMap.fog.push([]);
+        for (var yi = 0; yi < Parameters.worldSize; yi++) {
+          IsometricMap.map[xi].push([]);
+          IsometricMap.fog[xi].push('x');
+          //IsometricMap.map[xi][yi] = $.extend(true, {}, Tiles.grass);
+        }
+      }
+
+      // Load world, and start loop when ready (callback function)
+      Isometric.load(function(){
+        MainLoop.setUpdate(update).setDraw(draw).setMaxAllowedFPS().start();
+      });
+
+    });
+  </script>
+  </head>
+  <body>
+    <canvas id="isocanvas"></canvas>
+  </body>
+</html>
