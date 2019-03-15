@@ -1,16 +1,113 @@
 * {
   margin: 0px;
   padding: 0px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+html {
+  width: 100%;
+  height: 100%;
 }
 
 body {
   width: 100%;
   height: 100%;
-  /* background-color: #8ab549; */
-  background: -moz-linear-gradient(top, #6698FF 0%, #2B3856 100%); /* FF3.6-15 */
-  background: -webkit-linear-gradient(top, #6698FF 0%,#2B3856 100%); /* Chrome10-25,Safari5.1-6 */
-  background: linear-gradient(to bottom, #6698FF 0%,#2B3856 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  color: white;
+  background-color: #2B3856;
   margin: 0;
-  height: 100%;
   overflow: hidden;
+}
+
+#formcontainer {
+  background-color: #828CA2;
+  width: 18%;
+  min-width: 250px;
+  margin: auto;
+  text-align: center;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  max-height: 75%;
+}
+
+#table_container {
+  height: 79px;
+  overflow-y: scroll;
+  padding: 5px;
+  margin: 15px;
+  margin-bottom: 0;
+  position: relative;
+  top: -30px;
+  background-color: #59606F;
+}
+
+.roomentry {
+  display: flex;
+  justify-content: space-between;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+  cursor: pointer;
+}
+
+.roomentry:hover {
+  background-color: #779CEF;
+}
+
+.players {
+  color: #828CA2;
+}
+
+.roomentry img {
+  width: 1em;
+}
+
+.pass {
+  width: 1.2em;
+}
+
+.formbutton {
+  width: calc(50% - 10px);
+  float: left;
+  background-color: #516AA2;
+  height: 50px;
+  padding: 5px;
+  cursor: pointer;
+  line-height: 50px;
+}
+
+.btn_active {
+  background-color: #828CA2;
+}
+
+form {
+  padding: 10px;
+  padding-bottom: 0;
+}
+
+
+#formcontainer span {
+  color: rgba(0,0,0, 0.3);
+  font-style: italic;
+  text-align: center;
+  padding: 15px;
+  padding-bottom: 30px;
+  display: block;
+}
+
+form input {
+  border: none;
+  border-bottom: 2px solid #516AA2;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+  outline: none;
+  background-color: rgba(0,0,0,0);
+  font-size: 1.1em;
+  margin: 10px;
+  padding: 5px;
+  color: white;
+  width: calc(100% - 30px);
+}
+
+form input:focus {
+  border-bottom: 2px solid #779CEF;
 }

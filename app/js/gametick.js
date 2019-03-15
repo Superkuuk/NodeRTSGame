@@ -1,51 +1,32 @@
+var randomOrder = [];
+
 // This function runs zero or more times per frame depending on the frame rate. It is used to compute anything affected by time - typically physics and AI movements.
 // delta is the simulated time in ms
-var randomOrder = [];
-var inView = [];
-var outView = [];
-for (var xi = 0; xi < Parameters.worldSize; xi++) {
-  for (var yi = 0; yi < Parameters.worldSize; yi++) {
-    randomOrder.push({x: xi, y: yi});
-  }
-}
-
-if (window.Worker) {
-  var randomTile_worker = new Worker('workers/randomTile.js');
-  randomTile_worker.postMessage(randomOrder);
-
-
-  randomTile_worker.onmessage = function(e) {
-    randomOrder = e.data;
-  }
-
-}
-
 function update(delta) {
     // update FPS
     Isometric.fps = Math.floor(MainLoop.getFPS());
 
-    //Isometric.isInViewport(pos.x, pos.y, 100)
-    //$.each(randomOrder, function(index, pos){
-    for(var i = 0; i < randomOrder.length; i++) {
-      var pos = randomOrder[i];
-      // Run tile functions randomly
-      if (typeof IsometricMap.map[pos.x][pos.y].run === "function" ){
-        IsometricMap.map[pos.x][pos.y].run(delta);
-      } else {
-        var chance = 1;
-        for (var xi = -1; xi <= 1; xi++) {
-          for (var yi = -1; yi <= 1; yi++) {
-            if (IsometricMap.isTileOnMap(pos.x + xi, pos.y + yi) && IsometricMap.map[pos.x + xi][pos.y + yi].tileType == IsometricMap.tiles.Trees[6]) {
-              chance += 150;
-            }
-          }
-        }
 
-        if (rand(1, Parameters.treeGrowthChance) <= chance) {
-          IsometricMap.map[pos.x][pos.y] = $.extend(true, {}, Tiles.trees);
-        }
-      }
-    }
+    // for(var i = 0; i < randomOrder.length; i++) {
+    //   var pos = randomOrder[i];
+    //   // Run tile functions randomly
+    //   if (typeof IsometricMap.map[pos.x][pos.y].run === "function" ){
+    //     IsometricMap.map[pos.x][pos.y].run(delta);
+    //   } else {
+    //     var chance = 1;
+    //     for (var xi = -1; xi <= 1; xi++) {
+    //       for (var yi = -1; yi <= 1; yi++) {
+    //         if (IsometricMap.isTileOnMap(pos.x + xi, pos.y + yi) && IsometricMap.map[pos.x + xi][pos.y + yi].tileType == IsometricMap.tiles.Trees[6]) {
+    //           chance += 150;
+    //         }
+    //       }
+    //     }
+    //
+    //     if (rand(1, Parameters.treeGrowthChance) <= chance) {
+    //       IsometricMap.map[pos.x][pos.y] = $.extend(true, {}, Tiles.trees);
+    //     }
+    //   }
+    // }
 }
 
 // This function should update the screen, usually by changing the DOM or painting a canvas.

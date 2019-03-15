@@ -1,37 +1,86 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Isometric Tile Test</title>
+    <title>Isogame</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
+
     <script src="/lib/jquery-3.3.1.min.js"></script>
     <script src="/lib/mainloop.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/parameters.js"></script>
     <script src="/js/gametick.js"></script>
     <script src="/js/isometric.js"></script>
     <script src="/js/map.js"></script>
     <script src="/js/tiles.js"></script>
     <script src="/js/resources.js"></script>
-    <script>$(function() {
+    <script src="/js/sockets.js"></script>
+  </head>
+  <body>
+    <div id="formcontainer">
+      <form id="playerinfo">
+        <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="player" placeholder="your player name">
+        <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="room" placeholder="room name">
+        <input type="number" onkeyup="chNum(this)" pattern="[1-4]{1}*" min="1" max="4" name="maxplayers" placeholder="max number of players">
+        <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="password" placeholder="password">
+      </form>
+      <span>Note: you can only use characters and numbers.</span>
+      <div id="table_container"></div>
 
-      for (var xi = 0; xi < Parameters.worldSize; xi++) {
-        IsometricMap.map.push([]);
-        IsometricMap.fog.push([]);
-        for (var yi = 0; yi < Parameters.worldSize; yi++) {
-          IsometricMap.map[xi].push([]);
-          IsometricMap.fog[xi].push('x');
-          //IsometricMap.map[xi][yi] = $.extend(true, {}, Tiles.grass);
+      <div class="formbutton" onclick="toggleForm(this)" id="join">Join</div><div class="formbutton btn_active" onclick="toggleForm(this)" id="host">Host</div>
+    </div>
+
+
+
+    <script>
+      var maxplayers_elem = $( "#playerinfo input:eq(2)" );
+      var password_elem = $( "#playerinfo input:eq(3)" );
+      $("#table_container").hide();
+      function toggleForm(obj) {
+        if (obj.id == "join") {
+          $("#host").removeClass('btn_active');
+          $("#join").addClass('btn_active');
+          $( "#playerinfo input:eq(2)" ).remove(); // maxplayers
+          $( "#playerinfo input:eq(2)" ).remove(); // password
+          $("#table_container").show();
+        } else {
+          $("#join").removeClass('btn_active');
+          $("#host").addClass('btn_active');
+          $( "#playerinfo" ).append(maxplayers_elem);
+          $( "#playerinfo" ).append(password_elem);
+          $("#table_container").hide();
         }
       }
 
-      // Load world, and start loop when ready (callback function)
-      Isometric.load(function(){
-        MainLoop.setUpdate(update).setDraw(draw).setMaxAllowedFPS().start();
+      function chText(obj) {
+        var regex=/[^A-Za-z0-9]/gi;
+        obj.value=obj.value.replace(regex ,"");
+      }
+      function chNum(obj) {
+        var regex=/[^0-9]/gi;
+        obj.value=obj.value.replace(regex ,"");
+        if (obj.value > 4) {
+          obj.value = 4;
+        }
+      }
+
+      $(document).on('keypress',function(e) {
+        if(e.which == 13) {
+            $("#playerinfo").submit();
+        }
       });
 
-    });
-  </script>
-  </head>
-  <body>
-    <canvas id="isocanvas"></canvas>
+      $( "#playerinfo" ).submit(function( event ) {
+        event.preventDefault();
+        var formdata = {
+          player: $( "#playerinfo input:eq(0)" ).val(),
+          room: $( "#playerinfo input:eq(1)" ).val(),
+          maxplayers: $( "#playerinfo input:eq(2)" ).val(),
+          password: $( "#playerinfo input:eq(3)" ).val()
+        }
+        socket.emit('join room', formdata);
+        $("body").html('<canvas id="isocanvas"></canvas>');
+      });
+    </script>
   </body>
 </html>

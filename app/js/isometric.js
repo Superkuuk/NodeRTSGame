@@ -1,5 +1,5 @@
 var Isometric = {
-  debugObj: [],
+  roomname: undefined,
 
   tileColumnOffset: 99, // pixels
   tileRowOffset: 49, // pixels
@@ -165,23 +165,6 @@ var Isometric = {
      $(window).trigger(event);
    });
 
-    $(window).on('click', function() {
-      //self.showCoordinates = !self.showCoordinates;
-      if (self.isCursorOnMap() && self.selectedBlock != undefined) {
-        IsometricMap.map[self.selectedTileX][self.selectedTileY] = $.extend(true, {}, self.selectedBlock); // Make deep copy
-        if (self.selectedBlock.los) {
-          for (var xi = -1*self.selectedBlock.los; xi <= self.selectedBlock.los; xi++) {
-            for (var yi = -1*self.selectedBlock.los; yi <= self.selectedBlock.los; yi++) {
-                if (IsometricMap.isTileOnMap(self.selectedTileX + xi, self.selectedTileY + yi)) {
-                  IsometricMap.fog[self.selectedTileX + xi][self.selectedTileY + yi] = 'o';
-                }
-            }
-          }
-        }
-
-        //self.redrawTiles();
-      }
-    });
 
     this.updateCanvasSize();
     //this.redrawTiles();
