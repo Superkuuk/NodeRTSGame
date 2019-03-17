@@ -17,12 +17,19 @@
     <script src="/js/sockets.js"></script>
   </head>
   <body>
+    <div id="promptboxContainer">
+    <div id="promptbox">
+      <input type="text" placeholder="Enter password">
+      <div><button onclick="$('#promptbox input').val('');$('#promptboxContainer').hide()">Cancel</button><button onclick="ok()">Ok</button></div>
+    </div></div>
+
     <div id="formcontainer">
       <form id="playerinfo">
         <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="player" placeholder="your player name">
         <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="room" placeholder="room name">
         <input type="number" onkeyup="chNum(this)" pattern="[1-4]{1}*" min="1" max="4" name="maxplayers" placeholder="max number of players">
         <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="password" placeholder="password">
+        <input type="hidden" value="host" id="typeOfJoin">
       </form>
       <span>Note: you can only use characters and numbers.</span>
       <div id="table_container"></div>
@@ -33,22 +40,23 @@
 
 
     <script>
-      var maxplayers_elem = $( "#playerinfo input:eq(2)" );
-      var password_elem = $( "#playerinfo input:eq(3)" );
       $("#table_container").hide();
+      $("#promptboxContainer").hide();
       function toggleForm(obj) {
         if (obj.id == "join") {
           $("#host").removeClass('btn_active');
           $("#join").addClass('btn_active');
-          $( "#playerinfo input:eq(2)" ).remove(); // maxplayers
-          $( "#playerinfo input:eq(2)" ).remove(); // password
+          $( "#playerinfo input[name='maxplayers']" ).hide(); // maxplayers
+          $( "#playerinfo input[name='password']" ).hide(); // password
           $("#table_container").show();
+          $( "#typeOfJoin" ).val("join");
         } else {
           $("#join").removeClass('btn_active');
           $("#host").addClass('btn_active');
-          $( "#playerinfo" ).append(maxplayers_elem);
-          $( "#playerinfo" ).append(password_elem);
+          $( "#playerinfo input[name='maxplayers']" ).show(); // maxplayers
+          $( "#playerinfo input[name='password']" ).show(); // password
           $("#table_container").hide();
+          $( "#typeOfJoin" ).val("host");
         }
       }
 
@@ -65,21 +73,45 @@
       }
 
       $(document).on('keypress',function(e) {
-        if(e.which == 13) {
-            $("#playerinfo").submit();
+        if(e.which == 13 && $( "#typeOfJoin" ).val() == "host") {
+          var submitok = true;
+          if ($( "#playerinfo input[name='room']" ).val() == "") {
+            $( "#playerinfo input[name='room']" ).addClass("error");
+            submitok = false;
+            $( "#playerinfo input[name='room']" ).focus();
+          }
+          if ($( "#playerinfo input[name='player']" ).val() == "") {
+            $( "#playerinfo input[name='player']" ).addClass("error");
+            submitok = false;
+            $( "#playerinfo input[name='player']" ).focus();
+          }
+          if (submitok) $("#playerinfo").submit();
+        } else if (e.which == 13 && $("#promptboxContainer").is(":visible")) {
+          ok();
         }
+      });
+
+      $( "#playerinfo input[name='room']" ).on('keyup',function(e) {
+        // Filter rooms by given name
+        $(".roomentry").each(function(index, element){
+          if ( !($(this).data("room").includes($( "#playerinfo input[name='room']" ).val())) ) {
+            $(this).hide();
+          } else {
+            $(this).show();
+          }
+        });
       });
 
       $( "#playerinfo" ).submit(function( event ) {
         event.preventDefault();
         var formdata = {
-          player: $( "#playerinfo input:eq(0)" ).val(),
-          room: $( "#playerinfo input:eq(1)" ).val(),
-          maxplayers: $( "#playerinfo input:eq(2)" ).val(),
-          password: $( "#playerinfo input:eq(3)" ).val()
+          player: $( "#playerinfo input[name='player']" ).val(),
+          room: $( "#playerinfo input[name='room']" ).val(),
+          maxplayers: $( "#playerinfo input[name='maxplayers']" ).val(),
+          password: $( "#playerinfo input[name='password']" ).val(),
+          type: $( "#typeOfJoin" ).val()
         }
         socket.emit('join room', formdata);
-        $("body").html('<canvas id="isocanvas"></canvas>');
       });
     </script>
   </body>

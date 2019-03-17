@@ -29,22 +29,7 @@ app.get('/', function(req, res){
 */
 
 var GamesList = {};
-
-// var Game = {
-//   map: [],
-//   loopOrder: [],
-//   players: [],
-//   loop: serverloop,
-//   isTileOnMap: function(x, y) {
-//     var isOnMap = false;
-//     if (typeof this.map[x] != "undefined") {
-//       if (typeof this.map[x][y] != "undefined") {
-//         isOnMap = true;
-//       }
-//     }
-//     return isOnMap;
-//   }
-// }
+var PlayerList = {};
 
 function Game(roomname, hostname, maxplayers = 4, password = "") {
   this.roomname = roomname;
@@ -138,19 +123,48 @@ io.on('connection', function(socket){
   });
 
   socket.on('join room', function(info){
-    socket.join(info.room);
-    if (GamesList[info.room]) {
-      console.log(info.player + " joins room " + info.room);
-      GamesList[info.room].players.push(info.player);
+    if (PlayerList[info.player]) {
+      // There is already a player with this name, pick a new name!
+      info.error = "playername";
+      socket.emit('join error', info);
     } else {
-      console.log(info.player + " makes a new room: " + info.room);
-      // TODO: Encrypt passwords
-      GamesList[info.room] = new Game(info.room, info.player, info.maxplayers, info.password);
-      // TODO: start when all players are present
-      GamesList[info.room].start();
+      if (info.type == "join") {
+        if (GamesList[info.room].password == info.password) {
+          console.log(info.player + " joins room " + info.room);
+          GamesList[info.room].players.push(info.player);
+
+          PlayerList[info.player] = socket.id;
+          socket.join(info.room);
+          io.emit('init', GamesList[info.room]);
+          sendGamelist();
+        } else {
+          // Wrong password for this room!
+          console.log(info.player + " tried to connect to room "+ info.room +", with wrong password.");
+          info.error = "password";
+          socket.emit('join error', info);
+        }
+      } else if (info.type == "host") {
+        if (GamesList[info.room]) {
+          // There already exists a room with this name.
+          info.error = "room";
+          socket.emit('join error', info);
+        } else {
+          console.log(info.player + " makes a new room: " + info.room);
+          // TODO: Encrypt passwords
+          GamesList[info.room] = new Game(info.room, info.player, info.maxplayers, info.password);
+          // TODO: start when all players are present
+          GamesList[info.room].start();
+
+          PlayerList[info.player] = socket.id;
+          socket.join(info.room);
+          socket.emit('init', GamesList[info.room]);
+          sendGamelist();
+        }
+      } else {
+        info.error = "other";
+        socket.emit('join error', info);
+      }
     }
-    io.emit('init', GamesList[info.room]);
-    sendGamelist();
   });
 
 });

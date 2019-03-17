@@ -9,14 +9,15 @@ socket.on('gamelist', function(gamelist_info){
     gamelist_info[i].password;
     var playersmaxplayers = gamelist_info[i].players + "/" + gamelist_info[i].maxplayers;
     if (gamelist_info[i].password == "") {
-      $("#table_container").append('<div class="roomentry"><div class="pass"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
+      $("#table_container").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="false"><div class="pass"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
     } else {
-      $("#table_container").append('<div class="roomentry"><div class="pass"><img src="icons/lock.png" alt="Password protected"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
+      $("#table_container").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="true"><div class="pass"><img src="icons/lock.png" alt="Password protected"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
     }
   }
 });
 
 socket.on('init', function(Game){
+  $("body").html('<canvas id="isocanvas"></canvas>');
   Isometric.roomname = Game.roomname;
   IsometricMap.map = Game.map;
   randomOrder = Game.loopOrder;
@@ -37,6 +38,50 @@ socket.on('init', function(Game){
 socket.on('map update', function(update){
   IsometricMap.map[update.x][update.y] = update.tile;
 });
+
+socket.on('join error', function(info){
+  if (info.error == "password") {
+    $( "#promptbox input" ).addClass("error");
+    $( "#promptbox input" ).focus();
+    alert("You entered the wrong password. Please try again.");
+  } else if (info.error == "playername") {
+    $( "#playerinfo input[name='player']" ).addClass("error");
+    $( "#playerinfo input[name='player']" ).focus();
+    alert("This name is already in use. Please pick another name.");
+  } else if (info.error == "room") {
+    $( "#playerinfo input[name='room']" ).addClass("error");
+    $( "#playerinfo input[name='room']" ).focus();
+    alert("This room is already in use. Please pick another room name.");
+  } else {
+    alert ('You entered something wrong. Please try again.');
+  }
+});
+
+function ok(roomname) {
+  var formdata = {
+    player: $( "#playerinfo input[name='player']" ).val(),
+    room: roomname || $( "#promptbox" ).data("room"),
+    password: $( "#promptbox input" ).val(),
+    type: $( "#typeOfJoin" ).val()
+  }
+  socket.emit('join room', formdata);
+}
+
+function joinroom(obj) {
+  // Check if player name is given
+  if ($( "#playerinfo input[name='player']" ).val() == "") {
+    $( "#playerinfo input[name='player']" ).addClass("error");
+    $( "#playerinfo input[name='player']" ).focus();
+  } else {
+    if (obj.data("protected")) {
+      $( "#promptbox" ).data("room", obj.data("room"));
+      $( "#promptboxContainer" ).show(); // password
+      $( "#promptbox input" ).focus();
+    } else {
+      ok(obj.data("room"));
+    }
+  }
+}
 
 $(window).on('click', function() {
   if (Isometric.isCursorOnMap() && Isometric.selectedBlock != undefined) {
