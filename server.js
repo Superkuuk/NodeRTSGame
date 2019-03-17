@@ -109,12 +109,20 @@ function sendGamelist() {
 }
 
 io.on('connection', function(socket){
-  console.log('a user connected');
+  console.log('a user connected with id ' + socket.id);
   sendGamelist();
 
-  socket.on('disconnect', function(){
-    console.log('user disconnected');
+  socket.on('disconnect', function(reason){
+    console.log('user disconnected with id ' + socket.id + " for reason: " + reason);
     //TODO: remove player from game
+  });
+
+  socket.on('try_reconnection', function(userId) {
+    if (PlayerList[userId.name] && PlayerList[userId.name] == userId.id) {
+      console.log(userId.name + " is reconnected with new id " + socket.id);
+      PlayerList[userId.name] = socket.id;
+      socket.emit('try_reconnect', socket.id);
+    }
   });
 
   socket.on('map change', function(update){
@@ -135,7 +143,12 @@ io.on('connection', function(socket){
 
           PlayerList[info.player] = socket.id;
           socket.join(info.room);
-          io.emit('init', GamesList[info.room]);
+          var sendData = { game: GamesList[info.room],
+                           playerid: { name: info.player,
+                                       id: socket.id
+                                     }
+                          }
+          io.emit('init', sendData);
           sendGamelist();
         } else {
           // Wrong password for this room!
@@ -157,7 +170,12 @@ io.on('connection', function(socket){
 
           PlayerList[info.player] = socket.id;
           socket.join(info.room);
-          socket.emit('init', GamesList[info.room]);
+          var sendData = { game: GamesList[info.room],
+                           playerid: { name: info.player,
+                                       id: socket.id
+                                     }
+                          }
+          io.emit('init', sendData);
           sendGamelist();
         }
       } else {
