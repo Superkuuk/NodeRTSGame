@@ -115,6 +115,9 @@ io.on('connection', function(socket){
   socket.on('disconnect', function(reason){
     console.log('user disconnected with id ' + socket.id + " for reason: " + reason);
     //TODO: remove player from game
+    if (reason == "transport close") {
+      // user closed connection themselves (closed window, reloaded a window)
+    }
   });
 
   socket.on('try_reconnection', function(userId) {
@@ -148,7 +151,7 @@ io.on('connection', function(socket){
                                        id: socket.id
                                      }
                           }
-          io.emit('init', sendData);
+          socket.emit('init', sendData);
           sendGamelist();
         } else {
           // Wrong password for this room!
@@ -175,7 +178,7 @@ io.on('connection', function(socket){
                                        id: socket.id
                                      }
                           }
-          io.emit('init', sendData);
+          socket.emit('init', sendData);
           sendGamelist();
         }
       } else {

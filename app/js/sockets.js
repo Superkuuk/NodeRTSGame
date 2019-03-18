@@ -1,18 +1,25 @@
 var socket = io();
-var userId = {};
+if (typeof(Storage) === "undefined") {
+  console.log("sessionStorage is not supported. :(");
+  // TODO: Go to information page.
+}
+
+sessionStorage.setItem("userId", JSON.stringify({}));
 
 socket.on('connect', function() {
-  if ( !(!Object.keys(userId).length) ) {
+  if ( !(!Object.keys(JSON.parse(sessionStorage.getItem("userId"))).length) ) {
     console.log('Trying to reconnect...');
-    socket.emit('try_reconnection', userId);
+    socket.emit('try_reconnection', JSON.parse(sessionStorage.getItem("userId")) );
   }
 });
 
 // Reconnect users which are already in the game
 socket.on('try_reconnect', function(newid) {
-  if ( !(!Object.keys(userId).length) ) {
+  if ( !(!Object.keys(JSON.parse(sessionStorage.getItem("userId"))).length) ) {
     console.log('Reconnection succesful!');
-    userId.id = newid;
+    var uid = JSON.parse(sessionStorage.getItem("userId"));
+    uid.id = newid;
+    sessionStorage.setItem("userId", JSON.stringify(uid));
   } else {
     console.log('Something went wrong with the user id.');
   }
@@ -37,7 +44,7 @@ socket.on('gamelist', function(gamelist_info){
 socket.on('init', function(data){
   $("body").html('<canvas id="isocanvas"></canvas>');
   var Game = data.game;
-  userId = data.playerid;
+  sessionStorage.setItem("userId", JSON.stringify(data.playerid));
   Isometric.roomname = Game.roomname;
   IsometricMap.map = Game.map;
   randomOrder = Game.loopOrder;
