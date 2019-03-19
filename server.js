@@ -8,7 +8,8 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var serverloop = require('./lib/serverloop');
-var Parameters = require('./lib/parameters').data;
+var params = require('./lib/parameters');
+var Parameters = params.data;
 //var Tiles = require('./lib/tiles').data;
 
 
@@ -93,7 +94,7 @@ var update = function(delta) {
 
 /*
 =========================
-        Sockets
+      Lobby sockets
 =========================
 */
 function sendGamelist() {
@@ -209,7 +210,8 @@ io.on('connection', function(socket){
               var sendData = { game: GamesList[info.room],
                                playerid: { name: info.player,
                                            id: socket.id
-                                         }
+                                         },
+                               parameters: params.clientdata
                               }
               socket.emit('init', sendData);
               io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);
@@ -249,7 +251,8 @@ io.on('connection', function(socket){
             var sendData = { game: GamesList[info.room],
                              playerid: { name: info.player,
                                          id: socket.id
-                                       }
+                                       },
+                             parameters: params.clientdata
                             }
             socket.emit('init', sendData);
             io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);

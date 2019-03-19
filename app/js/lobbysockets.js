@@ -55,7 +55,7 @@ socket.on('lobbylist', function(lobby_players){
 socket.on('init', function(data){
   $("#startscreen").hide();
   $("#lobby").show();
-
+  Parameters = data.parameters;
   var Game = data.game;
   setID(data.playerid);
   if (Game.host != getID().name) $("#startbutton").hide();
