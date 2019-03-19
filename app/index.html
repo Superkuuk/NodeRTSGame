@@ -14,7 +14,8 @@
     <script src="/js/map.js"></script>
     <script src="/js/tiles.js"></script>
     <script src="/js/resources.js"></script>
-    <script src="/js/sockets.js"></script>
+    <script src="/js/lobbysockets.js"></script>
+    <script src="/js/gamesockets.js"></script>
   </head>
   <body>
     <div id="promptboxContainer">
@@ -23,7 +24,7 @@
       <div><button onclick="$('#promptbox input').val('');$('#promptboxContainer').hide()">Cancel</button><button onclick="ok()">Ok</button></div>
     </div></div>
 
-    <div id="formcontainer">
+    <div class="formcontainer" id="startscreen">
       <form id="playerinfo">
         <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="player" placeholder="your player name">
         <input type="text" onkeyup="chText(this)" pattern="[a-zA-Z_]\w*" name="room" placeholder="room name">
@@ -32,30 +33,34 @@
         <input type="hidden" value="host" id="typeOfJoin">
       </form>
       <span>Note: you can only use characters and numbers.</span>
-      <div id="table_container"></div>
+      <div class="table_container" id="roomentries"></div>
 
       <div class="formbutton" onclick="toggleForm(this)" id="join">Join</div><div class="formbutton btn_active" onclick="toggleForm(this)" id="host">Host</div>
     </div>
-
+    <div class="formcontainer" id="lobby">
+      <div class="table_container" id="playerlist"></div>
+      <div><button onclick="$('#lobby').hide();$('#startscreen').show();socket.emit('lobby quit')">Quit</button><button id="startbutton" onclick="socket.emit('host start');">Start</button></div>
+    </div>
 
 
     <script>
-      $("#table_container").hide();
+      $("#roomentries").hide();
       $("#promptboxContainer").hide();
+      $("#lobby").hide();
       function toggleForm(obj) {
         if (obj.id == "join") {
           $("#host").removeClass('btn_active');
           $("#join").addClass('btn_active');
           $( "#playerinfo input[name='maxplayers']" ).hide(); // maxplayers
           $( "#playerinfo input[name='password']" ).hide(); // password
-          $("#table_container").show();
+          $("#roomentries").show();
           $( "#typeOfJoin" ).val("join");
         } else {
           $("#join").removeClass('btn_active');
           $("#host").addClass('btn_active');
           $( "#playerinfo input[name='maxplayers']" ).show(); // maxplayers
           $( "#playerinfo input[name='password']" ).show(); // password
-          $("#table_container").hide();
+          $("#roomentries").hide();
           $( "#typeOfJoin" ).val("host");
         }
       }
@@ -73,8 +78,13 @@
       }
 
       $(document).on('keypress',function(e) {
-        if(e.which == 13 && $( "#typeOfJoin" ).val() == "host") {
+        if(e.which == 13 && $( "#typeOfJoin" ).val() == "host" && $("#startscreen").is(":visible")) {
           var submitok = true;
+          if ($( "#playerinfo input[name='maxplayers']" ).val() == "") {
+            $( "#playerinfo input[name='maxplayers']" ).addClass("error");
+            submitok = false;
+            $( "#playerinfo input[name='maxplayers']" ).focus();
+          }
           if ($( "#playerinfo input[name='room']" ).val() == "") {
             $( "#playerinfo input[name='room']" ).addClass("error");
             submitok = false;
@@ -87,7 +97,9 @@
           }
           if (submitok) $("#playerinfo").submit();
         } else if (e.which == 13 && $("#promptboxContainer").is(":visible")) {
-          ok();
+          ok(); // submit the promptbox
+        } else if (e.which == 13 && $("#lobby").is(":visible")) {
+          socket.emit('host start'); // submit host start game
         }
       });
 

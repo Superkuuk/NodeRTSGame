@@ -36,6 +36,7 @@ function Game(roomname, hostname, maxplayers = 4, password = "") {
   this.players = [hostname];
   this.maxplayers = maxplayers;
   this.password = password;
+  this.host = hostname;
 
   this.map = [];
   this.loopOrder = [];
@@ -110,6 +111,14 @@ function sendGamelist() {
 
 io.on('connection', function(socket){
   console.log('a user connected with id ' + socket.id);
+  socket.getRooms = function() {
+    return Object.keys(this.rooms).filter(item => item!=this.id);
+  };
+  socket.clearRooms = function() {
+    while (this.getRooms().length > 0) {
+      socket.leave(this.getRooms()[0]);
+    }
+  }
   sendGamelist();
 
   socket.on('disconnect', function(reason){
@@ -124,13 +133,58 @@ io.on('connection', function(socket){
     if (PlayerList[userId.name] && PlayerList[userId.name] == userId.id) {
       console.log(userId.name + " is reconnected with new id " + socket.id);
       PlayerList[userId.name] = socket.id;
+      PlayerList[socket.id] = userId.name;
       socket.emit('try_reconnect', socket.id);
+      // TODO: If a player is reconnected, put him again in the game.
     }
   });
 
-  socket.on('map change', function(update){
-    GamesList[update.room].map[update.x][update.y] = update.tile;
-    socket.to(update.room).emit('map update', update);
+  socket.on('host start', function(){
+    // Checks if player is the host of the game he is in.
+    if (GamesList[socket.getRooms()[0]].host == PlayerList[socket.id]){
+      io.to(socket.getRooms()[0]).emit("game start");
+      GamesList[socket.getRooms()[0]].start();
+    }
+  });
+
+  socket.on('lobby quit', function(){
+    if (GamesList[socket.getRooms()[0]].host == PlayerList[socket.id]) {
+      // When the user who quits is the host.
+      var room = socket.getRooms()[0];
+      io.in(room).clients((error, clients) => {
+        if (error) throw error;
+        clients.forEach(socketId => {
+          io.sockets.sockets[socketId].leave(room);
+          var info = {error: "host cancel"};
+          io.sockets.sockets[socketId].emit('join error', info);
+          var player = PlayerList[socketId];
+          delete PlayerList[socketId];
+          delete PlayerList[player];
+        });
+
+      });
+      delete GamesList[room];
+    } else {
+      console.log("1", socket.id);
+      var players = GamesList[socket.getRooms()[0]].players;
+      for( var i = 0; i < players.length; i++){
+         if ( players[i] == PlayerList[socket.id]) {
+           GamesList[socket.getRooms()[0]].players.splice(i, 1);
+           break;
+         }
+      }
+      console.log("2", GamesList[socket.getRooms()[0]]);
+      var room = socket.getRooms()[0];
+      socket.leave(room, function(){
+        io.to(room).emit('player left lobby', PlayerList[socket.id]);
+        var player = PlayerList[socket.id];
+        delete PlayerList[socket.id];
+        delete PlayerList[player];
+        console.log("3", room);
+      });
+
+    }
+    sendGamelist();
   });
 
   socket.on('join room', function(info){
@@ -140,19 +194,28 @@ io.on('connection', function(socket){
       socket.emit('join error', info);
     } else {
       if (info.type == "join") {
+        // TODO: check if there is room for this player. // Maxplayers is not met yet.
         if (GamesList[info.room].password == info.password) {
           console.log(info.player + " joins room " + info.room);
           GamesList[info.room].players.push(info.player);
 
           PlayerList[info.player] = socket.id;
-          socket.join(info.room);
-          var sendData = { game: GamesList[info.room],
-                           playerid: { name: info.player,
-                                       id: socket.id
-                                     }
-                          }
-          socket.emit('init', sendData);
-          sendGamelist();
+          PlayerList[socket.id] = info.player;
+          if (socket.getRooms().length > 0) {
+            info.error = "room length";
+            socket.emit('join error', info);
+            socket.clearRooms();
+          }
+          socket.join(info.room, function(){
+            var sendData = { game: GamesList[info.room],
+                             playerid: { name: info.player,
+                                         id: socket.id
+                                       }
+                            }
+            socket.emit('init', sendData);
+            io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);
+            sendGamelist();
+          });
         } else {
           // Wrong password for this room!
           console.log(info.player + " tried to connect to room "+ info.room +", with wrong password.");
@@ -168,24 +231,41 @@ io.on('connection', function(socket){
           console.log(info.player + " makes a new room: " + info.room);
           // TODO: Encrypt passwords
           GamesList[info.room] = new Game(info.room, info.player, info.maxplayers, info.password);
-          // TODO: start when all players are present
-          GamesList[info.room].start();
 
           PlayerList[info.player] = socket.id;
-          socket.join(info.room);
-          var sendData = { game: GamesList[info.room],
-                           playerid: { name: info.player,
-                                       id: socket.id
-                                     }
-                          }
-          socket.emit('init', sendData);
-          sendGamelist();
+          PlayerList[socket.id] = info.player;
+          if (socket.getRooms().length > 0) {
+            info.error = "room length";
+            socket.emit('join error', info);
+            socket.clearRooms();
+          }
+          socket.join(info.room, function(){
+            var sendData = { game: GamesList[info.room],
+                             playerid: { name: info.player,
+                                         id: socket.id
+                                       }
+                            }
+            socket.emit('init', sendData);
+            io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);
+            sendGamelist();
+          });
         }
       } else {
         info.error = "other";
         socket.emit('join error', info);
       }
     }
+  });
+
+
+/*
+=========================
+     In-play sockets
+=========================
+*/
+  socket.on('map change', function(update){
+    GamesList[update.room].map[update.x][update.y] = update.tile;
+    socket.to(update.room).emit('map update', update);
   });
 
 });

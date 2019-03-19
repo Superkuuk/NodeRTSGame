@@ -4,47 +4,62 @@ if (typeof(Storage) === "undefined") {
   // TODO: Go to information page.
 }
 
-sessionStorage.setItem("userId", JSON.stringify({}));
+function getID() {
+  return JSON.parse(sessionStorage.getItem("userId"));
+}
+
+function setID(uid) {
+  sessionStorage.setItem("userId", JSON.stringify(uid));
+}
 
 socket.on('connect', function() {
   if ( !(!Object.keys(JSON.parse(sessionStorage.getItem("userId"))).length) ) {
     console.log('Trying to reconnect...');
-    socket.emit('try_reconnection', JSON.parse(sessionStorage.getItem("userId")) );
+    socket.emit('try_reconnection', getID() );
   }
 });
 
 // Reconnect users which are already in the game
 socket.on('try_reconnect', function(newid) {
-  if ( !(!Object.keys(JSON.parse(sessionStorage.getItem("userId"))).length) ) {
+  if ( !(!Object.keys(getID()).length) ) {
     console.log('Reconnection succesful!');
-    var uid = JSON.parse(sessionStorage.getItem("userId"));
+    var uid = getID();
     uid.id = newid;
-    sessionStorage.setItem("userId", JSON.stringify(uid));
+    setID(uid);
   } else {
     console.log('Something went wrong with the user id.');
   }
 });
 
 socket.on('gamelist', function(gamelist_info){
-  $("#table_container").empty();
+  $("#roomentries").empty();
   for (var i = 0; i < gamelist_info.length; i++) {
-    gamelist_info[i].room;
-    gamelist_info[i].players;
-    gamelist_info[i].maxplayers;
-    gamelist_info[i].password;
     var playersmaxplayers = gamelist_info[i].players + "/" + gamelist_info[i].maxplayers;
     if (gamelist_info[i].password == "") {
-      $("#table_container").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="false"><div class="pass"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
+      $("#roomentries").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="false"><div class="pass"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
     } else {
-      $("#table_container").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="true"><div class="pass"><img src="icons/lock.png" alt="Password protected"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
+      $("#roomentries").append('<div onclick="joinroom($(this))" class="roomentry" data-room="'+gamelist_info[i].room+'" data-protected="true"><div class="pass"><img src="icons/lock.png" alt="Password protected"></div><div class="room">'+gamelist_info[i].room+'</div><div class="players">'+playersmaxplayers+'</div></div>');
     }
   }
 });
 
+// TODO: Check if this works!
+socket.on('lobbylist', function(lobby_players){
+  $("#playerlist").empty();
+  for (var i = 0; i < lobby_players.length; i++) {
+    lobby_players[i];
+    $("#playerlist").append('<div class="roomentry">'+lobby_players[i]+'</div>');
+  }
+});
+
 socket.on('init', function(data){
-  $("body").html('<canvas id="isocanvas"></canvas>');
+  $("#startscreen").hide();
+  $("#lobby").show();
+
   var Game = data.game;
-  sessionStorage.setItem("userId", JSON.stringify(data.playerid));
+  setID(data.playerid);
+  if (Game.host != getID().name) $("#startbutton").hide();
+
   Isometric.roomname = Game.roomname;
   IsometricMap.map = Game.map;
   randomOrder = Game.loopOrder;
@@ -54,17 +69,8 @@ socket.on('init', function(data){
       IsometricMap.fog[xi].push('x');
     }
   }
-
-  // Load world, and start loop when ready (callback function)
-  Isometric.load(function(){
-    MainLoop.setUpdate(update).setDraw(draw).setMaxAllowedFPS().start();
-  });
-
 });
 
-socket.on('map update', function(update){
-  IsometricMap.map[update.x][update.y] = update.tile;
-});
 
 socket.on('join error', function(info){
   if (info.error == "password") {
@@ -79,9 +85,25 @@ socket.on('join error', function(info){
     $( "#playerinfo input[name='room']" ).addClass("error");
     $( "#playerinfo input[name='room']" ).focus();
     alert("This room is already in use. Please pick another room name.");
+  } else if (info.error == "room length") {
+    alert("You are already in a room according to the server. \n You're kicked out of those so you can join this one.");
+  } else if (info.error == "host cancel") {
+    alert("The host of the game cancelled the game.");
+    $( "#playerlist" ).empty();
+    $('#lobby').hide();
+    $('#startscreen').show();
   } else {
     alert ('You entered something wrong. Please try again.');
   }
+});
+
+socket.on('player left lobby', function(player){
+  $( "#playerlist div" ).each(function( index ) {
+    console.log($(this).html(), player);
+    if ($( this ).html() == player) {
+      $( this ).remove();
+    }
+  });
 });
 
 function ok(roomname) {
@@ -109,27 +131,3 @@ function joinroom(obj) {
     }
   }
 }
-
-$(window).on('click', function() {
-  if (Isometric.isCursorOnMap() && Isometric.selectedBlock != undefined) {
-    var update = {x: Isometric.selectedTileX,
-                  y: Isometric.selectedTileY,
-                  tile: $.extend(true, {}, Isometric.selectedBlock),
-                  room: Isometric.roomname
-                 };
-    socket.emit('map change', update);
-
-    IsometricMap.map[update.x][update.y] = update.tile;
-    // Adds los of this building to the reciever
-    if (update.tile.los) {
-      for (var xi = -1*update.tile.los; xi <= update.tile.los; xi++) {
-        for (var yi = -1*update.tile.los; yi <= update.tile.los; yi++) {
-          if (IsometricMap.isTileOnMap(update.x + xi, update.y + yi)) {
-            IsometricMap.fog[update.x + xi][update.y + yi] = 'o';
-          }
-        }
-      }
-    }
-
-  }
-});
