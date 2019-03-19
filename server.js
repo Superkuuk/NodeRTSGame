@@ -50,8 +50,7 @@ function Game(roomname, hostname, maxplayers = 4, password = "") {
     }
     return isOnMap;
   }
-  this.start = function() {
-    // TODO make player objects: resources, ...
+  this.makeWorld = function() {
     for (var xi = 0; xi < Parameters.worldSize; xi++) {
       this.map.push([]);
       for (var yi = 0; yi < Parameters.worldSize; yi++) {
@@ -59,6 +58,9 @@ function Game(roomname, hostname, maxplayers = 4, password = "") {
         this.loopOrder.push({x: xi, y: yi});
       }
     }
+  }
+  this.start = function() {
+    // TODO make player objects: resources, ...
     this.loop.setUpdate(update).start(); // starts this game
   }
 }
@@ -165,7 +167,6 @@ io.on('connection', function(socket){
       });
       delete GamesList[room];
     } else {
-      console.log("1", socket.id);
       var players = GamesList[socket.getRooms()[0]].players;
       for( var i = 0; i < players.length; i++){
          if ( players[i] == PlayerList[socket.id]) {
@@ -173,14 +174,12 @@ io.on('connection', function(socket){
            break;
          }
       }
-      console.log("2", GamesList[socket.getRooms()[0]]);
       var room = socket.getRooms()[0];
       socket.leave(room, function(){
         io.to(room).emit('player left lobby', PlayerList[socket.id]);
         var player = PlayerList[socket.id];
         delete PlayerList[socket.id];
         delete PlayerList[player];
-        console.log("3", room);
       });
 
     }
@@ -231,7 +230,7 @@ io.on('connection', function(socket){
           console.log(info.player + " makes a new room: " + info.room);
           // TODO: Encrypt passwords
           GamesList[info.room] = new Game(info.room, info.player, info.maxplayers, info.password);
-
+          GamesList[info.room].makeWorld();
           PlayerList[info.player] = socket.id;
           PlayerList[socket.id] = info.player;
           if (socket.getRooms().length > 0) {

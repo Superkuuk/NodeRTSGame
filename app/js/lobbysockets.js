@@ -59,7 +59,6 @@ socket.on('init', function(data){
   var Game = data.game;
   setID(data.playerid);
   if (Game.host != getID().name) $("#startbutton").hide();
-
   Isometric.roomname = Game.roomname;
   IsometricMap.map = Game.map;
   randomOrder = Game.loopOrder;
