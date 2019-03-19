@@ -91,6 +91,8 @@ socket.on('join error', function(info){
     $( "#playerlist" ).empty();
     $('#lobby').hide();
     $('#startscreen').show();
+  } else if (info.error == "full room") {
+    alert ('You tried to connect to a full room. Please join another room.');
   } else {
     alert ('You entered something wrong. Please try again.');
   }

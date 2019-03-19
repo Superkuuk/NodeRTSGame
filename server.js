@@ -193,34 +193,41 @@ io.on('connection', function(socket){
       socket.emit('join error', info);
     } else {
       if (info.type == "join") {
-        // TODO: check if there is room for this player. // Maxplayers is not met yet.
-        if (GamesList[info.room].password == info.password) {
-          console.log(info.player + " joins room " + info.room);
-          GamesList[info.room].players.push(info.player);
+        if (GamesList[info.room].maxplayers > GamesList[info.room].players.length) {
+          if (GamesList[info.room].password == info.password) {
+            console.log(info.player + " joins room " + info.room);
+            GamesList[info.room].players.push(info.player);
 
-          PlayerList[info.player] = socket.id;
-          PlayerList[socket.id] = info.player;
-          if (socket.getRooms().length > 0) {
-            info.error = "room length";
+            PlayerList[info.player] = socket.id;
+            PlayerList[socket.id] = info.player;
+            if (socket.getRooms().length > 0) {
+              info.error = "room length";
+              socket.emit('join error', info);
+              socket.clearRooms();
+            }
+            socket.join(info.room, function(){
+              var sendData = { game: GamesList[info.room],
+                               playerid: { name: info.player,
+                                           id: socket.id
+                                         }
+                              }
+              socket.emit('init', sendData);
+              io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);
+              sendGamelist();
+            });
+          } else {
+            // Wrong password for this room!
+            console.log(info.player + " tried to connect to room "+ info.room +", with wrong password.");
+            info.error = "password";
             socket.emit('join error', info);
-            socket.clearRooms();
           }
-          socket.join(info.room, function(){
-            var sendData = { game: GamesList[info.room],
-                             playerid: { name: info.player,
-                                         id: socket.id
-                                       }
-                            }
-            socket.emit('init', sendData);
-            io.to(socket.getRooms()[0]).emit('lobbylist', GamesList[info.room].players);
-            sendGamelist();
-          });
         } else {
-          // Wrong password for this room!
-          console.log(info.player + " tried to connect to room "+ info.room +", with wrong password.");
-          info.error = "password";
+          // Too many players in this room!
+          console.log(info.player + " tried to connect to full room "+ info.room);
+          info.error = "full room";
           socket.emit('join error', info);
         }
+
       } else if (info.type == "host") {
         if (GamesList[info.room]) {
           // There already exists a room with this name.
