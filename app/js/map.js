@@ -20,6 +20,7 @@ var IsometricMap = {
             "images/Trees_5.png", // 5
             "images/Trees_6.png" // 6
           ],
+    Concrete: "images/Concrete.png",
   },
   tilesMap: {},
   map: [],

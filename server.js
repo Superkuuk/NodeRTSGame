@@ -10,7 +10,7 @@ var io = require('socket.io')(http);
 var serverloop = require('./lib/serverloop');
 var params = require('./lib/parameters');
 var Parameters = params.data;
-//var Tiles = require('./lib/tiles').data;
+var Tiles = require('./lib/tiles');
 
 
 /*
@@ -51,20 +51,103 @@ function Game(roomname, hostname, maxplayers = 4, password = "") {
     }
     return isOnMap;
   }
+  this.isOnMap = function(x, y) {
+    var isOnMap = false;
+    if (typeof this.map[x] != "undefined") {
+      if (typeof this.map[x][y] != "undefined") {
+        isOnMap = true;
+      }
+    }
+    return isOnMap;
+  }
   this.makeWorld = function() {
+    // TODO make player objects: resources, ...
+    var elements = [];
     for (var xi = 0; xi < Parameters.worldSize; xi++) {
       this.map.push([]);
       for (var yi = 0; yi < Parameters.worldSize; yi++) {
         this.map[xi].push([]);
         this.loopOrder.push({x: xi, y: yi});
+
+        // Add environmental blocks
+        if (Math.floor(Math.random()*100) < Parameters.generator.concrete.Frequency) {
+          elements.push({
+            x: xi,
+            y: yi,
+            type: "concrete"
+          });
+        } else if (Math.floor(Math.random()*100) < Parameters.generator.tree.Frequency) {
+          elements.push({
+            x: xi,
+            y: yi,
+            type: "tree"
+          });
+        }
       }
     }
+
+    for (var i = 0; i < elements.length; i++) {
+      for (var j = 0; j < rand(Parameters.generator[elements[i].type].ClusterSize[0],Parameters.generator[elements[i].type].ClusterSize[1]); j++) {
+        var placed = false;
+        var dx = 0;
+        var dy = 0;
+        var ii = 1;
+        var ij = 0;
+        while (!placed) {
+          //console.log("try placement", this.isOnMap(elements[i].x + dx, elements[i].y + dy), this.map[elements[i].x + dx][elements[i].y + dy]);
+          console.log(this.isOnMap(elements[i].x + dx, elements[i].y + dy));
+          if (this.isOnMap(elements[i].x + dx, elements[i].y + dy) && this.map[elements[i].x + dx][elements[i].y + dy] == []) {
+            this.map[elements[i].x + dx][elements[i].y + dy] = new Tiles.tile(elements[i].type);
+            placed = true;
+          } else {
+            console.log(typeof ij, ij);
+            switch (ij) {
+              case 0: // 1 0
+                dx = ii;
+                dy = 0;
+                break;
+              case 1: // 0 1
+                dx = 0;
+                dy = ii;
+                break;
+              case 2: // -1 0
+                dx = -1 * ii;
+                dy = 0;
+                break;
+              case 3: // 0 -1
+                dx = 0;
+                dy = -1 * ii;
+                break;
+              case 4: // 1 1
+                dx = ii;
+                dy = ii;
+                break;
+              case 5: // -1 -1
+                dx = -1 * ii;
+                dy = -1 * ii;
+                break;
+              default:
+                ii++;
+            }
+            if (ij < 5) {
+              ij++;
+            } else {
+              placed = true;
+              console.log("placement failed");
+            }
+
+          }
+        }
+      }
+    }
+
+
   }
   this.start = function() {
-    // TODO make player objects: resources, ...
     this.loop.setUpdate(update).start(); // starts this game
   }
 }
+
 
 
 var update = function(delta) {
@@ -188,6 +271,7 @@ io.on('connection', function(socket){
   });
 
   socket.on('join room', function(info){
+    // TODO: Check if the game is already running!
     if (PlayerList[info.player]) {
       // There is already a player with this name, pick a new name!
       info.error = "playername";
@@ -282,3 +366,7 @@ io.on('connection', function(socket){
 http.listen(3000, function(){
   console.log('listening on *:3000');
 });
+
+function rand(min, max) {
+  return  Math.floor((Math.random() * (max - min)) + min);
+}

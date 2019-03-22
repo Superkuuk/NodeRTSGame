@@ -9,7 +9,11 @@ socket.on('game start', function(){
 });
 
 socket.on('map update', function(update){
-  IsometricMap.map[update.x][update.y] = update.tile;
+  var tile = update.tile;
+  if (update.tile.hasOwnProperty('new')) {
+    tile = $.extend(true, {}, update.tile, Tiles[update.tile.new] );
+  }
+  IsometricMap.map[update.x][update.y] = tile;
 });
 
 $(window).on('click', function() {

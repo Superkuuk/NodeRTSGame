@@ -1,41 +1,47 @@
 var Tiles = {
   grass: {
-    tileType: IsometricMap.tiles.Grain[0]
+    tileType: IsometricMap.tiles.Grain[0],
+    load: function() {},
   },
 
   grain: {
     tileType: IsometricMap.tiles.Grain[0],
-    growth: 0,
-    age: 0, // age in milliseconds
-    los: 1
+    los: 1,
+    load: function() {},
   },
 
   farm: {
     tileType: IsometricMap.tiles.Farm,
-    timeToHarvest: 0,
-    los: 3
+    los: 3,
+    load: function() {},
   },
 
   woodcutter: {
     tileType: IsometricMap.tiles.Woodcutter,
-    timeToHarvest: 0,
-    los: 5
+    los: 5,
+    load: function() {},
   },
 
-  trees: {
+  tree: {
     tileType: IsometricMap.tiles.Trees[0],
-    growth: 0,
-    age: 0
+    setTreeType: function(age) {
+      this.tileType = IsometricMap.tiles.Trees[age];
+    },
+    load: function() {
+      this.setTreeType(this.age);
+    },
   },
 
   house: {
     tileType: IsometricMap.tiles.House,
     los: 2,
-    habitants: 2,
+    load: function() {},
+  },
 
-    happiness: 100,
+  concrete: {
+    tileType: IsometricMap.tiles.Concrete,
+    load: function() {},
+  },
 
-    timeSinceMeal: 0
-  }
 
 };

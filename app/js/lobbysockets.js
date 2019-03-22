@@ -5,7 +5,12 @@ if (typeof(Storage) === "undefined") {
 }
 
 function getID() {
-  return JSON.parse(sessionStorage.getItem("userId"));
+  if (sessionStorage.length > 0) {
+    return JSON.parse(sessionStorage.getItem("userId"));
+  } else {
+    console.log("din");
+    return {};
+  }
 }
 
 function setID(uid) {
@@ -13,7 +18,7 @@ function setID(uid) {
 }
 
 socket.on('connect', function() {
-  if ( !(!Object.keys(JSON.parse(sessionStorage.getItem("userId"))).length) ) {
+  if ( !(!Object.keys(getID()).length) ) {
     console.log('Trying to reconnect...');
     socket.emit('try_reconnection', getID() );
   }
@@ -66,6 +71,10 @@ socket.on('init', function(data){
     IsometricMap.fog.push([]);
     for (var yi = 0; yi < IsometricMap.map.length; yi++) {
       IsometricMap.fog[xi].push('x');
+      if (IsometricMap.map[xi][yi].hasOwnProperty("new")) {
+        $.extend(IsometricMap.map[xi][yi], Tiles[IsometricMap.map[xi][yi].new] );
+        IsometricMap.map[xi][yi].load();
+      }
     }
   }
 });
